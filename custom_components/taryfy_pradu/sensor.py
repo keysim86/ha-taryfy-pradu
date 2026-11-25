@@ -291,9 +291,10 @@ class NajtanszaTaryfa(EncjaPunktu, SensorEntity):
                 attrs[okres] = r
         r = por.get("30_dni") or {}
         if r.get("oplaca_sie"):
+            zl = f"{r['oszczednosc_zl']:.2f}".replace(".", ",")
+            proc = f"{r['oszczednosc_proc']:.1f}".replace(".", ",")
             attrs["rekomendacja"] = (
-                f"Na zużyciu z ostatnich {r['dni']} dni {r['najtanszy']} byłaby tańsza o "
-                f"{r['oszczednosc_zl']:.2f} zł ({r['oszczednosc_proc']:.1f}%)."
+                f"Na zużyciu z ostatnich {r['dni']} dni {r['najtanszy']} byłaby tańsza o {zl} zł ({proc}%)."
             )
         elif r:
             attrs["rekomendacja"] = "Obecna taryfa jest najkorzystniejsza (albo różnica jest pomijalna)."

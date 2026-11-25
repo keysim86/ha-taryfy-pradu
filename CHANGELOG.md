@@ -5,6 +5,10 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+### Naprawiono
+
+- Rekomendacja porównania z polskim zapisem liczb (112,57 zł, 13,9%).
+
 ## [0.1.0] - 2026-11-25
 
 ### Dodano
