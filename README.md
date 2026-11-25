@@ -87,7 +87,8 @@ z planem stref.
 | `sensor.<punkt>_mozliwa_oszczednosc_30_dni` | ile byłoby taniej w najtańszym wariancie |
 | `binary_sensor.<punkt>_oplaca_sie_zmiana_taryfy` | wariant tańszy o co najmniej 3% i 5 zł w ostatnich 30 dniach |
 
-Porównanie korzysta ze statystyk długoterminowych licznika w Home Assistancie (godzina po godzinie) i liczy się raz
+Porównanie **nie liczy opłaty handlowej** (jest indywidualna dla oferty sprzedawcy, a nie dla taryfy).
+Korzysta ze statystyk długoterminowych licznika w Home Assistancie (godzina po godzinie) i liczy się raz
 na dobę o 3:30 (oraz po starcie); na żądanie — usługa `taryfy_pradu.porownaj_taryfy`. Warianty dynamiczne (G14)
 porównywane są tylko na ostatnich 30 dniach (tyle historii stref pobiera integracja).
 

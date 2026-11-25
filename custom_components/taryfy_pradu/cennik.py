@@ -121,12 +121,17 @@ class Cennik:
     def cena_brutto(self, okno: Okno) -> float:
         return self.cena_netto(okno) * self.mnoznik_vat
 
-    def stale_miesieczne_netto(self) -> float:
-        return sum(float(v or 0) for v in self.stale.values())
+    @property
+    def oferta(self) -> str:
+        """Nazwa oferty / cennika sprzedawcy (opcjonalna, do opisu)."""
+        return str(self.dane.get("oferta") or "").strip()
 
-    def stale_miesieczne_brutto(self) -> float:
-        return self.stale_miesieczne_netto() * self.mnoznik_vat
+    def stale_miesieczne_netto(self, pomin: tuple[str, ...] = ()) -> float:
+        return sum(float(v or 0) for k, v in self.stale.items() if k not in pomin)
 
-    def stale_dzienne_brutto(self, d: date) -> float:
+    def stale_miesieczne_brutto(self, pomin: tuple[str, ...] = ()) -> float:
+        return self.stale_miesieczne_netto(pomin) * self.mnoznik_vat
+
+    def stale_dzienne_brutto(self, d: date, pomin: tuple[str, ...] = ()) -> float:
         """Koszt stały brutto przypadający na dobę `d` (miesięczny / liczba dni miesiąca)."""
-        return self.stale_miesieczne_brutto() / calendar.monthrange(d.year, d.month)[1]
+        return self.stale_miesieczne_brutto(pomin) / calendar.monthrange(d.year, d.month)[1]

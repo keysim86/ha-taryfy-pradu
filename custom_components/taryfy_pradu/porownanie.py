@@ -16,6 +16,8 @@ POLOWA_GODZINY = timedelta(minutes=30)
 # rekomendacja zmiany: wariant tańszy co najmniej o tyle procent i złotych (w porównywanym okresie)
 PROG_PROC = 3.0
 PROG_ZL = 5.0
+# opłaty, których porównanie nie liczy -- zależą od wybranej oferty, nie od taryfy
+POMIJANE = ("handlowa",)
 
 
 def dni_okresu(od: datetime, do: datetime) -> list[date]:
@@ -54,7 +56,8 @@ def koszt(
 
 
 def koszt_wariantu(godziny, dni, taryfa: Taryfa, cennik: Cennik) -> dict[str, float] | None:
-    return koszt(godziny, dni, taryfa.okno, cennik.cena_brutto, cennik.stale_dzienne_brutto)
+    return koszt(godziny, dni, taryfa.okno, cennik.cena_brutto,
+                 lambda d: cennik.stale_dzienne_brutto(d, POMIJANE))
 
 
 def ranking(obecna: dict | None, warianty: dict[str, dict | None], nazwa_obecnej: str) -> dict:

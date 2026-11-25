@@ -447,12 +447,15 @@ class PunktFlow(ConfigSubentryFlow):
             self._cennik["za_kwh"] = {n: float(user_input.get(n) or 0) for n in SKLADNIKI_ZA_KWH}
             self._cennik["stale"] = {n: float(user_input.get(n) or 0) for n in SKLADNIKI_STALE}
             self._cennik["vat"] = float(user_input.get("vat", 23))
+            self._cennik["oferta"] = (user_input.get("oferta") or "").strip()
             return self._zakoncz_cennik()
         kwh = selector.NumberSelector(selector.NumberSelectorConfig(
             min=0, max=10, step="any", mode=selector.NumberSelectorMode.BOX, unit_of_measurement="zł/kWh"))
         mies = selector.NumberSelector(selector.NumberSelectorConfig(
             min=0, max=1000, step=0.01, mode=selector.NumberSelectorMode.BOX, unit_of_measurement="zł/mies."))
-        pola: dict[Any, Any] = {}
+        pola: dict[Any, Any] = {
+            vol.Optional("oferta", description={"suggested_value": self._cennik.get("oferta") or ""}): str,
+        }
         self._mapa = {}
         for n in SKLADNIKI_ZMIENNE:
             sk = self._cennik["zmienne"][n]

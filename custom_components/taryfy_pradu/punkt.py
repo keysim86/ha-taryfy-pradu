@@ -413,7 +413,7 @@ class Punkt:
             dni_okresu = porownanie.dni_okresu(poczatek, dzis)
             obecna = porownanie.koszt(
                 godziny, dni_okresu, self.okno, self._cena_lub_blad,
-                lambda d: self.cennik_na(d).stale_dzienne_brutto(d),
+                lambda d: self.cennik_na(d).stale_dzienne_brutto(d, porownanie.POMIJANE),
             )
             koszty: dict[str, dict | None] = {}
             for w in self.warianty:
@@ -422,8 +422,11 @@ class Punkt:
                     continue  # strefy dynamiczne znamy tylko z ostatniego miesiąca
                 cennik = Cennik({k: v for k, v in w.items() if k not in ("nazwa", "taryfa", "od")})
                 koszty[w["nazwa"]] = porownanie.koszt_wariantu(godziny, dni_okresu, t, cennik)
-            r = porownanie.ranking(obecna, koszty, f"Obecna ({self.taryfa.nazwa})")
-            r.update(od=dni_okresu[0].isoformat(), do=dni_okresu[-1].isoformat(), dni=len(dni_okresu))
+            oferta = self.cennik_na(dt_util.now().date()).oferta
+            nazwa = f"Obecna ({self.taryfa.nazwa}{' — ' + oferta if oferta else ''})"
+            r = porownanie.ranking(obecna, koszty, nazwa)
+            r.update(od=dni_okresu[0].isoformat(), do=dni_okresu[-1].isoformat(), dni=len(dni_okresu),
+                     pominiete_oplaty=list(porownanie.POMIJANE))
             wynik[okres] = r
         self.porownanie = wynik
         self._powiadom()

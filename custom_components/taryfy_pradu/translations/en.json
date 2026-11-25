@@ -118,7 +118,7 @@
         },
         "stawki": {
           "title": "Cennik — stawki netto ({taryfa})",
-          "description": "Wpisz stawki **netto** z faktury lub taryfy. Integracja doliczy VAT. Stawki dystrybucji i opłat są podpowiedziane z taryfy operatora na 2026 r. — sprawdź je z fakturą.",
+          "description": "Wpisz stawki **netto** z faktury lub taryfy. Integracja doliczy VAT. Stawki dystrybucji i opłat są podpowiedziane z taryfy operatora na 2026 r. — sprawdź je z fakturą. Porównanie taryf pomija opłatę handlową — zależy ona od wybranej oferty.",
           "data": {
             "jakosciowa": "Opłata jakościowa",
             "oze": "Opłata OZE",
@@ -127,7 +127,8 @@
             "abonamentowa": "Opłata abonamentowa",
             "mocowa": "Opłata mocowa",
             "handlowa": "Opłata handlowa (sprzedawca)",
-            "vat": "VAT"
+            "vat": "VAT",
+            "oferta": "Nazwa oferty (np. Tanie Godziny)"
           }
         },
         "dodaj_wariant": {

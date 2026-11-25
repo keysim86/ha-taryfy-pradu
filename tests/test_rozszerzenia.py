@@ -119,3 +119,22 @@ def test_ranking_rekomenduje_przy_duzej_roznicy():
     assert r["najtanszy"] == "G12w" and r["oplaca_sie"] is True
     assert r["oszczednosc_zl"] == 50.0 and r["oszczednosc_proc"] == pytest.approx(13.9)
     assert [p["nazwa"] for p in r["koszty"]] == ["G12w", "Obecna"]
+
+
+def test_porownanie_bez_oplaty_handlowej():
+    start = t("2026-11-25 00:00").astimezone(UTC)
+    godziny = [(start + timedelta(hours=i), 1.0) for i in range(24)]
+    dni = porownanie.dni_okresu(start, start + timedelta(days=1))
+    w = wzorzec("tauron_g11_2026")
+    w["cennik"]["zmienne"]["energia"]["stawki"] = {"*": 0.5}
+    w["cennik"]["stale"]["handlowa"] = 24.0
+    c = Cennik(w["cennik"])
+    k = porownanie.koszt_wariantu(godziny, dni, Taryfa(w["taryfa"]), c)
+    assert k["stale"] == pytest.approx(c.stale_dzienne_brutto(date(2026, 11, 25), ("handlowa",)))
+    assert k["stale"] == pytest.approx((10.86 + 4.56 + 24.05) * 1.23 / 30)  # bez 24 zł handlowej
+    assert c.stale_dzienne_brutto(date(2026, 11, 25)) > k["stale"]
+
+
+def test_nazwa_oferty_w_cenniku():
+    assert Cennik({"oferta": " Tanie Godziny "}).oferta == "Tanie Godziny"
+    assert Cennik({}).oferta == ""

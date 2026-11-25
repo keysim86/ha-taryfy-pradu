@@ -28,6 +28,11 @@ wersje: [SemVer](https://semver.org/lang/pl/).
   i 12 miesięcy, encje „Najtańsza taryfa”, „Możliwa oszczędność”, „Opłaca się zmiana taryfy”, usługa
   `taryfy_pradu.porownaj_taryfy`.
 
+### Zmieniono
+
+- Porównanie taryf nie liczy opłaty handlowej (zależy od wybranej oferty sprzedawcy, nie od taryfy).
+- Cennik ma opcjonalną nazwę oferty (np. „Tanie Godziny”) — pokazywaną przy obecnej pozycji porównania.
+
 ### Naprawiono
 
 - Domyślna opłata jakościowa we wzorcach: 0,0332 zł/kWh (zgodnie z fakturami i tauron.pl; wyciąg z taryfy
