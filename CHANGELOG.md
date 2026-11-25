@@ -18,3 +18,8 @@ wersje: [SemVer](https://semver.org/lang/pl/).
   miesiąc / rok, narastający koszt energii, energia w strefach, najtańsza / najdroższa strefa teraz,
   dzień wolny, kalendarz stref.
 - Zdarzenie `taryfy_pradu_zmiana_strefy`, usługi `taryfy_pradu.najtanszy_przedzial` i `taryfy_pradu.cena`.
+- Brand integracji (ikona i logo, jasne i ciemne) z generatorem `assets/brand.py`.
+
+### Naprawiono
+
+- Testy uruchamiane samym `pytest` (CI) nie znajdowały pakietu integracji.

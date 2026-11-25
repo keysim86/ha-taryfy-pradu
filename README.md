@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/keysim86/ha-taryfy-pradu/main/custom_components/taryfy_pradu/brand/icon@2x.png" alt="Taryfy prądu" width="110"/>
+</p>
+
 # Taryfy prądu
 
 Integracja Home Assistant do śledzenia **bieżących kosztów energii elektrycznej według taryfy strefowej**:

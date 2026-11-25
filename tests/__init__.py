@@ -1,0 +1,1 @@
+"""Testy integracji Taryfy prądu."""
