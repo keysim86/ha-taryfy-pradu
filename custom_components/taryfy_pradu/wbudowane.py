@@ -105,9 +105,89 @@ CENNIK_G13S_2026 = {
     "stale": dict(_STALE_2026),
 }
 
+_ROK = [{"id": "rok", "nazwa": "Cały rok", "od": "01-01", "do": "12-31"}]
+
+TAURON_G11 = {
+    "nazwa": "G11", "operator": "TAURON Dystrybucja", "zrodlo": "Taryfa TAURON Dystrybucja 2026",
+    "czas": "lokalny", "dni": "jednakowe",
+    "strefy": [{"id": "calodobowa", "nazwa": "Całodobowa"}],
+    "sezony": copy.deepcopy(_ROK),
+    "godziny": {"rok": {"roboczy": {"calodobowa": "00:00-24:00"}}},
+}
+
+TAURON_G12 = {
+    "nazwa": "G12", "operator": "TAURON Dystrybucja", "zrodlo": "Taryfa TAURON Dystrybucja 2026, pkt 2.2",
+    "czas": "lokalny", "dni": "jednakowe",
+    "strefy": [{"id": "nocna", "nazwa": "Nocna"}, {"id": "dzienna", "nazwa": "Dzienna"}],
+    "sezony": copy.deepcopy(_ROK),
+    "godziny": {"rok": {"roboczy": {"dzienna": "06:00-13:00, 15:00-22:00", "nocna": "13:00-15:00, 22:00-06:00"}}},
+}
+
+TAURON_G12W = {
+    "nazwa": "G12w", "operator": "TAURON Dystrybucja", "zrodlo": "Taryfa TAURON Dystrybucja 2026, pkt 2.2",
+    "czas": "lokalny", "dni": "roboczy_wolny",
+    "strefy": [{"id": "pozaszczytowa", "nazwa": "Pozaszczytowa"}, {"id": "szczytowa", "nazwa": "Szczytowa"}],
+    "sezony": copy.deepcopy(_ROK),
+    "godziny": {"rok": {
+        "roboczy": {"szczytowa": "06:00-13:00, 15:00-22:00", "pozaszczytowa": "13:00-15:00, 22:00-06:00"},
+        "wolny": {"pozaszczytowa": "00:00-24:00"},
+    }},
+}
+
+# G12as: nocna stawka dystrybucji 0,0246 tylko dla zużycia PONAD zużycie z analogicznego okresu
+# poprzedniego roku (do tego poziomu 0,2464) -- tego progu integracja nie liczy (wzorzec: 0,2464).
+TAURON_G12AS = {
+    "nazwa": "G12as", "operator": "TAURON Dystrybucja", "zrodlo": "Taryfa TAURON Dystrybucja 2026, pkt 2.2",
+    "czas": "lokalny", "dni": "jednakowe",
+    "strefy": [{"id": "nocna", "nazwa": "Nocna"}, {"id": "dzienna", "nazwa": "Dzienna"}],
+    "sezony": copy.deepcopy(_ROK),
+    "godziny": {"rok": {"roboczy": {"dzienna": "06:00-22:00", "nocna": "22:00-06:00"}}},
+}
+
+TAURON_G14DYNAMIC = {
+    "nazwa": "G14dynamic", "operator": "TAURON Dystrybucja",
+    "zrodlo": "Taryfa TAURON Dystrybucja 2026; strefy: PSE Energetyczny Kompas",
+    "typ": "dynamiczna", "zrodlo_stref": "pse_kompas", "domyslna": "s2",
+    "czas": "lokalny", "dni": "jednakowe",
+    "strefy": [
+        {"id": "s1", "nazwa": "Zalecane użytkowanie"},
+        {"id": "s2", "nazwa": "Normalne użytkowanie"},
+        {"id": "s3", "nazwa": "Zalecane oszczędzanie"},
+        {"id": "s4", "nazwa": "Wymagane ograniczenie"},
+    ],
+    "sezony": copy.deepcopy(_ROK),
+}
+
+
+def _cennik(dystrybucja: dict, wymiary: list | None = None, stale: dict | None = None) -> dict:
+    return {
+        "vat": 23.0,
+        "zmienne": {
+            "energia": {"wymiary": ["strefa"], "stawki": {}},
+            "dystrybucja": {"wymiary": ["strefa"] if wymiary is None else wymiary, "stawki": dystrybucja},
+        },
+        "za_kwh": dict(_ZA_KWH_2026),
+        "stale": dict(_STALE_2026, **(stale or {})),
+    }
+
+
+CENNIK_G11_2026 = _cennik({"*": 0.2464}, wymiary=[])
+CENNIK_G11_2026["zmienne"]["energia"]["wymiary"] = []
+CENNIK_G12_2026 = _cennik({"dzienna": 0.2841, "nocna": 0.0558})
+CENNIK_G12W_2026 = _cennik({"szczytowa": 0.3298, "pozaszczytowa": 0.0512})
+CENNIK_G12AS_2026 = _cennik({"dzienna": 0.2464, "nocna": 0.2464},
+                            stale={"sieciowa_stala": 21.72})  # 3-faz.; 1-faz. 14,76
+CENNIK_G14DYNAMIC_2026 = _cennik({"s1": 0.0224, "s2": 0.0893, "s3": 0.3881, "s4": 2.3756})
+
 WZORCE = {
     "tauron_g13_2026": {"nazwa": "TAURON G13 (2026)", "taryfa": TAURON_G13, "cennik": CENNIK_G13_2026},
     "tauron_g13s_2026": {"nazwa": "TAURON G13s (2026)", "taryfa": TAURON_G13S, "cennik": CENNIK_G13S_2026},
+    "tauron_g11_2026": {"nazwa": "TAURON G11 (2026)", "taryfa": TAURON_G11, "cennik": CENNIK_G11_2026},
+    "tauron_g12_2026": {"nazwa": "TAURON G12 (2026)", "taryfa": TAURON_G12, "cennik": CENNIK_G12_2026},
+    "tauron_g12w_2026": {"nazwa": "TAURON G12w (2026)", "taryfa": TAURON_G12W, "cennik": CENNIK_G12W_2026},
+    "tauron_g12as_2026": {"nazwa": "TAURON G12as (2026)", "taryfa": TAURON_G12AS, "cennik": CENNIK_G12AS_2026},
+    "tauron_g14dynamic_2026": {"nazwa": "TAURON G14dynamic (2026, strefy z PSE)", "taryfa": TAURON_G14DYNAMIC,
+                               "cennik": CENNIK_G14DYNAMIC_2026},
 }
 
 

@@ -8,12 +8,15 @@ Integracja Home Assistant do śledzenia **bieżących kosztów energii elektrycz
 która strefa obowiązuje teraz, ile kosztuje kWh, kiedy zmiana, ile kosztował dzisiejszy dzień,
 miesiąc i rok — z uwzględnieniem sezonów, dni roboczych, weekendów i świąt.
 
-- **Wbudowane wzorce:** TAURON Dystrybucja **G13** i **G13s** (taryfa na 2026 r.), z godzinami stref i stawkami dystrybucji.
+- **Wbudowane wzorce (TAURON Dystrybucja, taryfa na 2026 r.):** **G11**, **G12**, **G12w**, **G12as**, **G13**, **G13s**
+  i **G14dynamic** — z godzinami stref i stawkami dystrybucji. G14dynamic pobiera strefy na bieżąco z PSE.
 - **Kreator taryf w panelu HA:** własne strefy, sezony, godziny dla dni roboczych i wolnych, czas lokalny albo zimowy.
 - **Cennik ze składników faktury:** energia od sprzedawcy, dystrybucja zmienna i stała, opłaty jakościowa, OZE,
   kogeneracyjna, mocowa, abonamentowa, handlowa, VAT. Każdy składnik zmienny może zależeć od sezonu, rodzaju dnia i strefy.
-- **Cenniki od dnia:** nowy cennik (np. nowa taryfa od 1 stycznia) wpisujesz wcześniej — integracja przełączy się sama,
-  a wcześniejsze koszty zostają policzone po starych cenach.
+- **Zmiany z wyprzedzeniem:** nowy cennik **i/lub nowa taryfa** od wybranego dnia — wpisujesz wcześniej, integracja
+  przełączy się sama o północy, a wcześniejsze koszty zostają policzone po starych cenach.
+- **Porównanie taryf:** Twoje rzeczywiste zużycie godzinowe z ostatnich 30 dni i 12 miesięcy przeliczone według
+  wariantów (taryfa + cennik oferty) — najtańsza taryfa, możliwa oszczędność i rekomendacja zmiany.
 - **Do automatyzacji:** sensory strefy i ceny, czujniki „najtańsza / najdroższa strefa teraz”, kalendarz stref,
   zdarzenie zmiany strefy i usługa „najtańszy przedział” (kiedy włączyć pralkę).
 
@@ -32,8 +35,22 @@ Taryfy prądu**.
 2. **Dodaj punkt poboru** — licznik energii (sensor kWh, narastający) i taryfa. Potem cennik:
    - **od czego zależą stawki** każdego składnika zmiennego (sezon / rodzaj dnia / strefa);
    - **stawki netto** z faktury — dystrybucja i opłaty są podpowiedziane z taryfy operatora, energię od sprzedawcy wpisujesz sam.
-3. Później: **Cennik i ustawienia** punktu — zmiana obowiązującego cennika, cennik od wybranego dnia, usunięcie cennika,
-   zmiana licznika lub taryfy. Taryfę edytujesz tym samym kreatorem.
+3. Później: **Cennik i ustawienia** punktu:
+   - **zmień obowiązujący cennik** (np. po nowej fakturze),
+   - **zaplanuj nowy cennik lub taryfę od wybranego dnia** — data, taryfa, stawki,
+   - **usuń cennik** z harmonogramu,
+   - **dodaj / usuń wariant do porównania** — taryfa i cennik oferty, z którą porównać obecne rozliczenie,
+   - **nazwa i licznik**.
+
+   Taryfę edytujesz tym samym kreatorem, którym ją dodałeś.
+
+### Uwagi do taryf
+
+- **G12as** — nocna stawka dystrybucji 0,0246 zł/kWh dotyczy tylko zużycia *ponad* zużycie z analogicznego okresu
+  poprzedniego roku; do tego poziomu obowiązuje 0,2464 zł/kWh. Integracja tego progu nie liczy (wzorzec: 0,2464).
+- **G14dynamic** — strefy S1 „zalecane użytkowanie” … S4 „wymagane ograniczenie” pochodzą z Energetycznego Kompasu PSE
+  (`api.raporty.pse.pl`, raport `pdgsz`), pobierane co 30 minut na dziś i jutro (plan na jutro PSE publikuje ok. 16:00).
+  Dla godzin bez danych obowiązuje S2. Kreator nie pyta o godziny.
 
 ### Dni wolne
 
@@ -66,6 +83,13 @@ z planem stref.
 | `binary_sensor.<punkt>_najtansza_strefa_teraz`, `_najdrozsza_strefa_teraz` | czy teraz jest najtaniej / najdrożej w tej dobie |
 | `binary_sensor.<punkt>_dzien_wolny_wg_taryfy` | dzień wolny (atrybut `swieto`) |
 | `calendar.<punkt>_strefy` | strefy jako wydarzenia (z ceną) — wyzwalacze kalendarza w automatyzacjach |
+| `sensor.<punkt>_najtansza_taryfa_30_dni` | wynik porównania; atrybuty: ranking kosztów (30 dni i rok), rekomendacja |
+| `sensor.<punkt>_mozliwa_oszczednosc_30_dni` | ile byłoby taniej w najtańszym wariancie |
+| `binary_sensor.<punkt>_oplaca_sie_zmiana_taryfy` | wariant tańszy o co najmniej 3% i 5 zł w ostatnich 30 dniach |
+
+Porównanie korzysta ze statystyk długoterminowych licznika w Home Assistancie (godzina po godzinie) i liczy się raz
+na dobę o 3:30 (oraz po starcie); na żądanie — usługa `taryfy_pradu.porownaj_taryfy`. Warianty dynamiczne (G14)
+porównywane są tylko na ostatnich 30 dniach (tyle historii stref pobiera integracja).
 
 Koszt energii liczony jest z przyrostów licznika po cenie strefy z chwili zużycia. Przyrosty z czasu, gdy Home
 Assistant nie działał, nie są doliczane (nie wiadomo, w której strefie zostały zużyte).

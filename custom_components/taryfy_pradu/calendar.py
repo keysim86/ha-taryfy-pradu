@@ -35,7 +35,7 @@ class KalendarzStref(EncjaPunktu, CalendarEntity):
         return CalendarEvent(
             start=dt_util.as_local(o.od),
             end=dt_util.as_local(o.do),
-            summary=p.taryfa.nazwa_strefy(o.strefa),
+            summary=p.nazwa_strefy(o.strefa, o.od),
             description=f"{opis}\nSezon: {o.sezon}, dzień: {o.dzien}",
             uid=f"{p.id}-{int(o.od.timestamp())}",
         )
@@ -48,11 +48,11 @@ class KalendarzStref(EncjaPunktu, CalendarEntity):
         o = p.okno_teraz()
         od = o.od
         for _ in range(7):
-            wczesniej = p.taryfa.okno(od - timedelta(seconds=1))
+            wczesniej = p.okno(od - timedelta(seconds=1))
             if wczesniej.strefa != o.strefa:
                 break
             od = wczesniej.od
-        kiedy, _ = p.taryfa.nastepna_zmiana(teraz)
+        kiedy, _ = p.nastepna_zmiana(teraz)
         return self._wydarzenie(Okno(o.strefa, o.sezon, o.dzien, od, kiedy))
 
     async def async_get_events(
@@ -60,7 +60,7 @@ class KalendarzStref(EncjaPunktu, CalendarEntity):
     ) -> list[CalendarEvent]:
         wynik: list[CalendarEvent] = []
         poprzednie: Okno | None = None
-        for o in self._punkt.taryfa.okna(start_date, end_date):
+        for o in self._punkt.okna(start_date, end_date):
             # sklej sąsiednie okna tej samej strefy (np. noc przez północ)
             if poprzednie and poprzednie.strefa == o.strefa and poprzednie.do == o.od:
                 poprzednie = Okno(o.strefa, poprzednie.sezon, poprzednie.dzien, poprzednie.od, o.do)

@@ -19,7 +19,8 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: TaryfyConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     for sid, p in entry.runtime_data.items():
-        async_add_entities([NajtanszaStrefa(p), NajdrozszaStrefa(p), DzienWolny(p)], config_subentry_id=sid)
+        async_add_entities([NajtanszaStrefa(p), NajdrozszaStrefa(p), DzienWolny(p), OplacaSieZmiana(p)],
+                           config_subentry_id=sid)
 
 
 class _Porownanie(EncjaPunktu, BinarySensorEntity):
@@ -72,3 +73,22 @@ class DzienWolny(EncjaPunktu, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {"swieto": swieto(dt_util.now().date())}
+
+
+class OplacaSieZmiana(EncjaPunktu, BinarySensorEntity):
+    """Wariant z porównania tańszy od obecnej taryfy (≥ 3% i ≥ 5 zł w ostatnich 30 dniach)."""
+
+    _attr_icon = "mdi:swap-horizontal-circle"
+
+    def __init__(self, punkt: Punkt) -> None:
+        super().__init__(punkt, "oplaca_sie_zmiana")
+
+    @property
+    def is_on(self) -> bool | None:
+        r = self._punkt.porownanie.get("30_dni")
+        return None if not r or "oplaca_sie" not in r else bool(r["oplaca_sie"])
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        r = self._punkt.porownanie.get("30_dni") or {}
+        return {k: r.get(k) for k in ("najtanszy", "oszczednosc_zl", "oszczednosc_proc", "dni")}

@@ -19,6 +19,14 @@ wersje: [SemVer](https://semver.org/lang/pl/).
   dzień wolny, kalendarz stref.
 - Zdarzenie `taryfy_pradu_zmiana_strefy`, usługi `taryfy_pradu.najtanszy_przedzial` i `taryfy_pradu.cena`.
 - Brand integracji (ikona i logo, jasne i ciemne) z generatorem `assets/brand.py`.
+- Wzorce TAURON G11, G12, G12w, G12as i G14dynamic (2026).
+- Taryfy dynamiczne: strefy G14dynamic z Energetycznego Kompasu PSE (raport `pdgsz`), pobierane co 30 min,
+  zapisywane w stanie punktu; dla godzin bez danych strefa domyślna.
+- Harmonogram punktu: każdy cennik ma własną taryfę — zmiana cen i/lub taryfy od wybranego dnia; encje stref
+  wszystkich taryf z harmonogramu powstają od razu.
+- Porównanie taryf: warianty (taryfa + cennik oferty), koszt na rzeczywistym zużyciu godzinowym z ostatnich 30 dni
+  i 12 miesięcy, encje „Najtańsza taryfa”, „Możliwa oszczędność”, „Opłaca się zmiana taryfy”, usługa
+  `taryfy_pradu.porownaj_taryfy`.
 
 ### Naprawiono
 

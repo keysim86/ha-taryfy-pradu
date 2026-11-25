@@ -43,6 +43,14 @@
           "data": {
             "jak_roboczy": "Tak samo jak w dzień roboczy"
           }
+        },
+        "dynamiczna": {
+          "title": "Taryfa dynamiczna",
+          "description": "Strefy tej taryfy przychodzą z zewnętrznego źródła godzina po godzinie (PSE — Energetyczny Kompas, plan na następną dobę ok. 16:00). Godzin nie ustawia się ręcznie; dla godzin bez danych obowiązuje strefa „normalne użytkowanie”.",
+          "data": {
+            "nazwa": "Nazwa",
+            "operator": "Operator (OSD)"
+          }
         }
       },
       "error": {
@@ -72,34 +80,36 @@
           "title": "Ustawienia punktu",
           "data": {
             "nazwa": "Nazwa",
-            "zrodlo": "Licznik energii",
-            "taryfa": "Taryfa"
+            "zrodlo": "Licznik energii"
           }
         },
         "reconfigure": {
           "title": "Punkt poboru",
           "menu_options": {
             "cennik": "Zmień obowiązujący cennik",
-            "nowy_cennik": "Dodaj cennik od wybranego dnia",
-            "usun_cennik": "Usuń cennik",
-            "ustawienia": "Nazwa, licznik i taryfa"
+            "nowy_cennik": "Zaplanuj nowy cennik lub taryfę od wybranego dnia",
+            "usun_cennik": "Usuń cennik z harmonogramu",
+            "dodaj_wariant": "Dodaj wariant do porównania taryf",
+            "usun_wariant": "Usuń wariant porównania",
+            "ustawienia": "Nazwa i licznik"
           }
         },
         "nowy_cennik": {
-          "title": "Nowy cennik",
-          "description": "Od tego dnia (00:00) obowiązuje nowy cennik — np. nowa taryfa od 1 stycznia. Wcześniejsze koszty się nie zmieniają.",
+          "title": "Nowy cennik od dnia",
+          "description": "Od tego dnia (00:00) obowiązuje wybrana taryfa z nowym cennikiem — np. nowe ceny sprzedawcy albo zmiana taryfy od 1 stycznia. W kolejnych krokach wpiszesz stawki. Wcześniejsze koszty się nie zmieniają; przy zmianie taryfy encje stref przebudują się same tego dnia.",
           "data": {
-            "od": "Obowiązuje od"
+            "od": "Obowiązuje od",
+            "taryfa": "Taryfa"
           }
         },
         "usun_cennik": {
           "title": "Usuń cennik",
           "data": {
-            "od": "Cennik obowiązujący od"
+            "cennik": "Cennik (od — taryfa)"
           }
         },
         "wymiary": {
-          "title": "Cennik — od czego zależą stawki",
+          "title": "Cennik ({taryfa}) — od czego zależą stawki",
           "description": "Zaznacz, od czego zależy stawka składnika na fakturze. Np. dystrybucja G13s zależy od sezonu, rodzaju dnia i strefy; energia od sprzedawcy często tylko od strefy. Nic nie zaznaczone = jedna stawka.",
           "data": {
             "energia": "Energia czynna (sprzedawca)",
@@ -118,6 +128,20 @@
             "mocowa": "Opłata mocowa",
             "handlowa": "Opłata handlowa (sprzedawca)",
             "vat": "VAT"
+          }
+        },
+        "dodaj_wariant": {
+          "title": "Wariant do porównania",
+          "description": "Taryfa i cennik oferty, z którą porównać obecne rozliczenie (np. G12w z cenami sprzedawcy). Integracja przeliczy na niej Twoje rzeczywiste zużycie godzinowe z ostatnich 30 dni i 12 miesięcy.",
+          "data": {
+            "taryfa": "Taryfa",
+            "nazwa": "Nazwa wariantu (opcjonalnie)"
+          }
+        },
+        "usun_wariant": {
+          "title": "Usuń wariant",
+          "data": {
+            "wariant": "Wariant"
           }
         }
       },
@@ -188,6 +212,12 @@
       },
       "energia_dzis_strefy": {
         "name": "Energia dziś — {strefa}"
+      },
+      "najtansza_taryfa": {
+        "name": "Najtańsza taryfa (30 dni)"
+      },
+      "mozliwa_oszczednosc": {
+        "name": "Możliwa oszczędność (30 dni)"
       }
     },
     "binary_sensor": {
@@ -199,6 +229,9 @@
       },
       "dzien_wolny": {
         "name": "Dzień wolny wg taryfy"
+      },
+      "oplaca_sie_zmiana": {
+        "name": "Opłaca się zmiana taryfy"
       }
     },
     "calendar": {
@@ -241,6 +274,16 @@
         "chwila": {
           "name": "Chwila",
           "description": "Domyślnie teraz."
+        }
+      }
+    },
+    "porownaj_taryfy": {
+      "name": "Porównaj taryfy",
+      "description": "Przelicza zużycie z ostatnich 30 dni i 12 miesięcy według obecnego cennika i wariantów porównania (normalnie raz na dobę, o 3:30).",
+      "fields": {
+        "encja": {
+          "name": "Encja punktu",
+          "description": "Dowolna encja punktu poboru."
         }
       }
     }

@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 from . import TaryfyConfigEntry
 from .const import JEDNOSTKA_CENY, WALUTA
 from .entity import EncjaPunktu
+from . import pse
 from .punkt import Punkt
 
 
@@ -24,11 +25,21 @@ async def async_setup_entry(
         encje: list[SensorEntity] = [
             Strefa(p), Cena(p), NastepnaStrefa(p), ZmianaStrefy(p), CenaNastepna(p),
             Koszt(p, "dzien"), Koszt(p, "miesiac"), Koszt(p, "rok"), KosztEnergii(p),
-            OplatyStale(p),
+            OplatyStale(p), NajtanszaTaryfa(p), MozliwaOszczednosc(p),
         ]
-        for s in p.taryfa.strefy:
-            encje += [EnergiaStrefy(p, s["id"]), EnergiaDzisStrefy(p, s["id"]), CenaStrefyDzis(p, s["id"])]
+        for strefa in p.strefy_harmonogramu():
+            encje += [EnergiaStrefy(p, strefa), EnergiaDzisStrefy(p, strefa), CenaStrefyDzis(p, strefa)]
         async_add_entities(encje, config_subentry_id=sid)
+
+
+def _nazwy_stref(punkt: Punkt) -> list[str]:
+    """Nazwy stref wszystkich taryf punktu (bez powtórzeń) -- opcje encji typu enum."""
+    nazwy: list[str] = []
+    for t in punkt.taryfy.values():
+        for s in t.strefy:
+            if (n := t.nazwa_strefy(s["id"])) not in nazwy:
+                nazwy.append(n)
+    return nazwy
 
 
 class Strefa(EncjaPunktu, SensorEntity):
@@ -37,11 +48,11 @@ class Strefa(EncjaPunktu, SensorEntity):
 
     def __init__(self, punkt: Punkt) -> None:
         super().__init__(punkt, "strefa")
-        self._attr_options = [punkt.taryfa.nazwa_strefy(s["id"]) for s in punkt.taryfa.strefy]
+        self._attr_options = _nazwy_stref(punkt)
 
     @property
     def native_value(self) -> str:
-        return self._punkt.taryfa.nazwa_strefy(self._punkt.okno_teraz().strefa)
+        return self._punkt.nazwa_strefy(self._punkt.okno_teraz().strefa)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -57,8 +68,11 @@ class Strefa(EncjaPunktu, SensorEntity):
             "do": dt_util.as_local(o.do).isoformat(),
             "taryfa": p.taryfa.nazwa,
             "czas_stref": p.taryfa.czas,
-            "plan_godzinowy_dzis": p.taryfa.plan_godzinowy(dzis),
-            "plan_godzinowy_jutro": p.taryfa.plan_godzinowy(jutro),
+            **({"zrodlo_stref": pse.NAZWA_ZRODLA,
+                "strefy_znane_do": dt_util.as_local(p.taryfa.dane_do).isoformat() if p.taryfa.dane_do else None}
+               if p.taryfa.zrodlo_stref == "pse_kompas" else {}),
+            "plan_godzinowy_dzis": p.plan_godzinowy(dzis),
+            "plan_godzinowy_jutro": p.plan_godzinowy(jutro),
             "ceny_dzis": p.ceny_dnia(dzis),
             "ceny_jutro": p.ceny_dnia(jutro),
             "plan_dzis": p.plan(dzis),
@@ -108,12 +122,12 @@ class NastepnaStrefa(EncjaPunktu, SensorEntity):
 
     def __init__(self, punkt: Punkt) -> None:
         super().__init__(punkt, "nastepna_strefa")
-        self._attr_options = [punkt.taryfa.nazwa_strefy(s["id"]) for s in punkt.taryfa.strefy]
+        self._attr_options = _nazwy_stref(punkt)
 
     @property
     def native_value(self) -> str:
-        _, o = self._punkt.taryfa.nastepna_zmiana(dt_util.now())
-        return self._punkt.taryfa.nazwa_strefy(o.strefa)
+        kiedy, o = self._punkt.nastepna_zmiana(dt_util.now())
+        return self._punkt.nazwa_strefy(o.strefa, kiedy)
 
 
 class ZmianaStrefy(EncjaPunktu, SensorEntity):
@@ -125,7 +139,7 @@ class ZmianaStrefy(EncjaPunktu, SensorEntity):
 
     @property
     def native_value(self) -> datetime:
-        kiedy, _ = self._punkt.taryfa.nastepna_zmiana(dt_util.now())
+        kiedy, _ = self._punkt.nastepna_zmiana(dt_util.now())
         return kiedy
 
 
@@ -139,7 +153,7 @@ class CenaNastepna(EncjaPunktu, SensorEntity):
 
     @property
     def native_value(self) -> float | None:
-        _, o = self._punkt.taryfa.nastepna_zmiana(dt_util.now())
+        _, o = self._punkt.nastepna_zmiana(dt_util.now())
         return self._punkt.cena(o)
 
 
@@ -254,3 +268,55 @@ class EnergiaDzisStrefy(EncjaPunktu, SensorEntity):
     @property
     def native_value(self) -> float:
         return round(self._punkt.energia_okresu("dzien").get(self._strefa, 0.0), 4)
+
+
+class NajtanszaTaryfa(EncjaPunktu, SensorEntity):
+    """Najtańsza taryfa na zużyciu z ostatnich 30 dni (obecna albo wariant do porównania)."""
+
+    _attr_icon = "mdi:scale-balance"
+
+    def __init__(self, punkt: Punkt) -> None:
+        super().__init__(punkt, "najtansza_taryfa")
+
+    @property
+    def native_value(self) -> str | None:
+        return (self._punkt.porownanie.get("30_dni") or {}).get("najtanszy")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        por = self._punkt.porownanie
+        attrs: dict[str, Any] = {}
+        for okres in ("30_dni", "rok"):
+            if r := por.get(okres):
+                attrs[okres] = r
+        r = por.get("30_dni") or {}
+        if r.get("oplaca_sie"):
+            attrs["rekomendacja"] = (
+                f"Na zużyciu z ostatnich {r['dni']} dni {r['najtanszy']} byłaby tańsza o "
+                f"{r['oszczednosc_zl']:.2f} zł ({r['oszczednosc_proc']:.1f}%)."
+            )
+        elif r:
+            attrs["rekomendacja"] = "Obecna taryfa jest najkorzystniejsza (albo różnica jest pomijalna)."
+        return attrs
+
+
+class MozliwaOszczednosc(EncjaPunktu, SensorEntity):
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = WALUTA
+    _attr_suggested_display_precision = 2
+    _attr_icon = "mdi:piggy-bank"
+
+    def __init__(self, punkt: Punkt) -> None:
+        super().__init__(punkt, "mozliwa_oszczednosc")
+
+    @property
+    def native_value(self) -> float | None:
+        r = self._punkt.porownanie.get("30_dni")
+        return None if not r or "oszczednosc_zl" not in r else r["oszczednosc_zl"]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        r = self._punkt.porownanie.get("30_dni") or {}
+        rok = self._punkt.porownanie.get("rok") or {}
+        return {"okres_dni": r.get("dni"), "procent": r.get("oszczednosc_proc"),
+                "w_roku_zl": rok.get("oszczednosc_zl"), "najtanszy_w_roku": rok.get("najtanszy")}

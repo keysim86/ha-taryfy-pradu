@@ -1,7 +1,12 @@
 {
   "domain": "taryfy_pradu",
   "name": "Taryfy prądu",
-  "codeowners": ["@keysim86"],
+  "after_dependencies": [
+    "recorder"
+  ],
+  "codeowners": [
+    "@keysim86"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/keysim86/ha-taryfy-pradu",

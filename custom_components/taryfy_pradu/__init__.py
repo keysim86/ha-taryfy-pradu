@@ -16,7 +16,9 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_CENNIKI, CONF_DEFINICJA, CONF_TARYFA, CONF_ZRODLO, DOMAIN, TYP_PUNKT, TYP_TARYFA
+from .const import (
+    CONF_CENNIKI, CONF_DEFINICJA, CONF_TARYFA, CONF_WARIANTY, CONF_ZRODLO, DOMAIN, TYP_PUNKT, TYP_TARYFA,
+)
 from .punkt import Punkt
 from .taryfa import BladTaryfy, Taryfa
 
@@ -29,6 +31,7 @@ type TaryfyConfigEntry = ConfigEntry[dict[str, Punkt]]
 
 USLUGA_NAJTANSZY = "najtanszy_przedzial"
 USLUGA_CENA = "cena"
+USLUGA_POROWNAJ = "porownaj_taryfy"
 
 SCHEMAT_NAJTANSZY = vol.Schema({
     vol.Required("encja"): cv.entity_id,
@@ -72,10 +75,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def cena(call: ServiceCall) -> ServiceResponse:
         p = _punkt(call.data["encja"])
-        okno = p.taryfa.okno(_lokalnie(call.data.get("chwila")))
+        okno = p.okno(_lokalnie(call.data.get("chwila")))
         return {
             "strefa": okno.strefa,
-            "nazwa_strefy": p.taryfa.nazwa_strefy(okno.strefa),
+            "nazwa_strefy": p.nazwa_strefy(okno.strefa, okno.od),
+            "taryfa": p.taryfa_na(dt_util.as_local(okno.od).date()).nazwa,
             "sezon": okno.sezon,
             "rodzaj_dnia": okno.dzien,
             "od": dt_util.as_local(okno.od).isoformat(),
@@ -83,6 +87,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             "cena": p.cena(okno),
         }
 
+    async def porownaj(call: ServiceCall) -> ServiceResponse:
+        return await _punkt(call.data["encja"]).async_porownaj()
+
+    hass.services.async_register(DOMAIN, USLUGA_POROWNAJ, porownaj, vol.Schema({vol.Required("encja"): cv.entity_id}),
+                                 supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, USLUGA_NAJTANSZY, najtanszy, SCHEMAT_NAJTANSZY,
                                  supports_response=SupportsResponse.ONLY)
     hass.services.async_register(DOMAIN, USLUGA_CENA, cena, SCHEMAT_CENA,
@@ -91,21 +100,25 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TaryfyConfigEntry) -> bool:
-    taryfy = {sid: s for sid, s in entry.subentries.items() if s.subentry_type == TYP_TARYFA}
+    taryfy_sub = {sid: s for sid, s in entry.subentries.items() if s.subentry_type == TYP_TARYFA}
     punkty: dict[str, Punkt] = {}
     for sid, sub in entry.subentries.items():
         if sub.subentry_type != TYP_PUNKT:
             continue
-        t_sub = taryfy.get(sub.data.get(CONF_TARYFA))
-        if t_sub is None:
-            _LOGGER.warning("Punkt %s: brak taryfy (usunięta?) — pomijam", sub.title)
+        # osobne obiekty taryf dla każdego punktu (strefy dynamiczne ustawia punkt)
+        taryfy: dict[str, Taryfa] = {}
+        for tid, t_sub in taryfy_sub.items():
+            try:
+                taryfy[tid] = Taryfa(t_sub.data[CONF_DEFINICJA])
+            except BladTaryfy as err:
+                _LOGGER.error("Taryfa %s jest niepoprawna: %s", t_sub.title, err)
+        cenniki = list(sub.data.get(CONF_CENNIKI) or [])
+        potrzebne = {c.get("taryfa") or sub.data.get(CONF_TARYFA) for c in cenniki} | {sub.data.get(CONF_TARYFA)}
+        if brak := [t for t in potrzebne if t not in taryfy]:
+            _LOGGER.warning("Punkt %s: brak taryfy %s (usunięta?) — pomijam", sub.title, brak)
             continue
-        try:
-            taryfa = Taryfa(t_sub.data[CONF_DEFINICJA])
-        except BladTaryfy as err:
-            _LOGGER.error("Taryfa %s jest niepoprawna: %s", t_sub.title, err)
-            continue
-        p = Punkt(hass, sid, sub.title, sub.data[CONF_ZRODLO], taryfa, list(sub.data.get(CONF_CENNIKI) or []))
+        p = Punkt(hass, entry.entry_id, sid, sub.title, sub.data[CONF_ZRODLO], taryfy,
+                  sub.data[CONF_TARYFA], cenniki, list(sub.data.get(CONF_WARIANTY) or []))
         await p.async_start()
         punkty[sid] = p
     entry.runtime_data = punkty

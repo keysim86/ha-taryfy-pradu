@@ -26,3 +26,10 @@ cena:
     chwila:
       selector:
         datetime:
+porownaj_taryfy:
+  fields:
+    encja:
+      required: true
+      selector:
+        entity:
+          integration: taryfy_pradu

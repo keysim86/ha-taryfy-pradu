@@ -97,12 +97,19 @@ class Taryfa:
     def __init__(self, definicja: dict) -> None:
         self.definicja = definicja
         self.nazwa: str = definicja.get("nazwa") or "Taryfa"
+        self.typ: str = definicja.get("typ", "stala")
+        if self.typ not in ("stala", "dynamiczna"):
+            raise BladTaryfy("Typ taryfy musi być „stala” albo „dynamiczna”")
         self.czas: str = definicja.get("czas", "lokalny")
         if self.czas not in ("lokalny", "zimowy"):
             raise BladTaryfy("Czas stref musi być „lokalny” albo „zimowy”")
         self.strefy: list[dict] = list(definicja.get("strefy") or [])
         self.sezony: list[dict] = list(definicja.get("sezony") or [])
         self.dni: str = definicja.get("dni", "roboczy_wolny")
+        if self.typ == "dynamiczna":
+            # strefy z zewnętrznego źródła godzina po godzinie -- bez sezonów i rodzajów dni
+            self.sezony = self.sezony or [{"id": "rok", "nazwa": "Cały rok", "od": "01-01", "do": "12-31"}]
+            self.dni = "jednakowe"
         if self.dni not in ("roboczy_wolny", "jednakowe"):
             raise BladTaryfy("Rodzaj dni musi być „roboczy_wolny” albo „jednakowe”")
         self._strefy_id = [s["id"] for s in self.strefy]
@@ -113,7 +120,12 @@ class Taryfa:
         if not self.sezony:
             raise BladTaryfy("Taryfa musi mieć co najmniej jeden sezon")
         self._sezony = self._zbuduj_sezony()
-        self._plany = self._zbuduj_plany(definicja.get("godziny") or {})
+        self.zrodlo_stref: str | None = definicja.get("zrodlo_stref")
+        self._domyslna: str = definicja.get("domyslna") or self._strefy_id[0]
+        if self._domyslna not in self._strefy_id:
+            raise BladTaryfy(f"Nieznana strefa domyślna „{self._domyslna}”")
+        self._godziny_dyn: dict[datetime, str] = {}
+        self._plany = {} if self.typ == "dynamiczna" else self._zbuduj_plany(definicja.get("godziny") or {})
 
     # --- budowa i walidacja -------------------------------------------------------
 
@@ -151,6 +163,42 @@ class Taryfa:
     def _nazwa_sezonu(self, sid: str) -> str:
         return next((s.get("nazwa") or sid for s in self.sezony if s["id"] == sid), sid)
 
+    # --- taryfa dynamiczna -----------------------------------------------------------
+
+    def ustaw_godziny(self, godziny: dict[datetime, str]) -> None:
+        """Strefy dynamiczne: {początek godziny (aware): strefa}. Nieznane strefy są pomijane."""
+        self._godziny_dyn = {
+            t.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0): z
+            for t, z in godziny.items()
+            if z in self._strefy_id
+        }
+
+    @property
+    def dane_do(self) -> datetime | None:
+        """Koniec ostatniej godziny ze znaną strefą dynamiczną (UTC)."""
+        return max(self._godziny_dyn) + timedelta(hours=1) if self._godziny_dyn else None
+
+    def _okno_dyn(self, chwila: datetime) -> Okno:
+        h = chwila.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        mapa, dom = self._godziny_dyn, self._domyslna
+        strefa, znana = mapa.get(h, dom), h in mapa
+
+        def ta_sama(t: datetime) -> bool:
+            return mapa.get(t, dom) == strefa and (t in mapa) == znana
+
+        od = h
+        for _ in range(48):
+            if not ta_sama(od - timedelta(hours=1)):
+                break
+            od -= timedelta(hours=1)
+        do = h + timedelta(hours=1)
+        for _ in range(48):
+            if not ta_sama(do):
+                break
+            do += timedelta(hours=1)
+        d = chwila.astimezone(STREFA_CZASOWA).date()
+        return Okno(strefa, self.sezon_dnia(d), "roboczy", od, do)
+
     # --- zapytania ----------------------------------------------------------------
 
     @property
@@ -183,6 +231,8 @@ class Taryfa:
         """Okno (strefa, sezon, rodzaj dnia, od, do) obowiązujące w chwili `chwila`."""
         if chwila.tzinfo is None:
             raise ValueError("chwila musi mieć strefę czasową")
+        if self.typ == "dynamiczna":
+            return self._okno_dyn(chwila)
         lokalna = chwila.astimezone(self.strefa_czasowa)
         chwila = chwila.astimezone(timezone.utc)
         for t_od, t_do, okno in self._odcinki_dnia(lokalna.date()):
@@ -208,6 +258,9 @@ class Taryfa:
         o = teraz
         for _ in range(400):
             nastepne = self.okno(o.do)
+            if self.typ == "dynamiczna" and (self.dane_do is None or o.do >= self.dane_do):
+                # dalej nie wiadomo -- „zmiana” na granicy znanych danych
+                return o.do, nastepne
             if (nastepne.strefa != teraz.strefa) if tylko_strefa else (nastepne.klucz != teraz.klucz):
                 return o.do, nastepne
             o = nastepne

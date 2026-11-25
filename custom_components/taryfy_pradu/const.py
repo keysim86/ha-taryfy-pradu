@@ -10,6 +10,7 @@ CONF_WZORZEC = "wzorzec"
 CONF_ZRODLO = "zrodlo"
 CONF_TARYFA = "taryfa"
 CONF_CENNIKI = "cenniki"
+CONF_WARIANTY = "warianty"
 
 ZDARZENIE_ZMIANA_STREFY = f"{DOMAIN}_zmiana_strefy"
 SYGNAL_AKTUALIZACJA = f"{DOMAIN}_aktualizacja_{{}}"

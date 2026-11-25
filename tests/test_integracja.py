@@ -218,3 +218,141 @@ async def test_stan_po_przeladowaniu(hass: HomeAssistant, uruchomione) -> None:
     assert float(hass.states.get("sensor.dom_energia_dzienna_szczytowa").state) == pytest.approx(2.0)
     await _licznik(hass, 1002.5)
     assert float(hass.states.get("sensor.dom_energia_dzienna_szczytowa").state) == pytest.approx(2.5)
+
+
+# --- rozszerzenia: wzorce, harmonogram taryf, G14dynamic, porównanie -------------------------
+
+async def _taryfa_ze_wzorca(hass: HomeAssistant, entry, wzorzec: str, nazwa: str) -> str:
+    """Taryfa przez kreator z podpowiedziami wzorca; zwraca subentry_id."""
+    fm = hass.config_entries.subentries
+    przed = set(hass.config_entries.async_get_entry(entry.entry_id).subentries)
+    w = await fm.async_init((entry.entry_id, "taryfa"), context={"source": SOURCE_USER})
+    w = await fm.async_configure(w["flow_id"], {"wzorzec": wzorzec})
+    while w["type"] is FlowResultType.FORM:
+        dane = {}
+        for k in w["data_schema"].schema:
+            sug = (k.description or {}).get("suggested_value")
+            dom = k.default() if callable(getattr(k, "default", None)) else None
+            dane[str(k)] = sug if sug is not None else dom
+        if w["step_id"] in ("podstawy", "dynamiczna"):
+            dane["nazwa"] = nazwa
+        dane = {k: v for k, v in dane.items() if v is not None and v != ""}
+        w = await fm.async_configure(w["flow_id"], dane)
+    assert w["type"] is FlowResultType.CREATE_ENTRY, w
+    await hass.async_block_till_done()
+    po = hass.config_entries.async_get_entry(entry.entry_id).subentries
+    return next(iter(set(po) - przed))
+
+
+def _stawki(w, energia: float) -> dict:
+    dane = {}
+    for k in w["data_schema"].schema:
+        if str(k).startswith("Energia czynna"):
+            dane[str(k)] = energia
+        else:
+            sug = (k.description or {}).get("suggested_value")
+            dane[str(k)] = sug if sug is not None else k.default()
+    return dane
+
+
+async def _rekonfiguruj(hass, entry, krok: str):
+    punkt_id = next(sid for sid, s in entry.subentries.items() if s.subentry_type == "punkt")
+    fm = hass.config_entries.subentries
+    w = await fm.async_init((entry.entry_id, "punkt"), context={"source": SOURCE_RECONFIGURE, "subentry_id": punkt_id})
+    return fm, await fm.async_configure(w["flow_id"], {"next_step_id": krok})
+
+
+async def test_zmiana_taryfy_od_dnia(hass: HomeAssistant, uruchomione, freezer) -> None:
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    entry = uruchomione
+    g12w = await _taryfa_ze_wzorca(hass, entry, "tauron_g12w_2026", "G12w")
+    entry = hass.config_entries.async_get_entry(entry.entry_id)
+    fm, w = await _rekonfiguruj(hass, entry, "nowy_cennik")
+    w = await fm.async_configure(w["flow_id"], {"od": "2026-11-26", "taryfa": g12w})
+    w = await fm.async_configure(w["flow_id"], {"energia": ["strefa"], "dystrybucja": ["strefa"]})
+    w = await fm.async_configure(w["flow_id"], _stawki(w, 0.60))
+    assert w["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+    # dziś dalej G13s, jutro G12w
+    assert hass.states.get("sensor.dom_strefa").state == "Dzienna szczytowa"
+    cena = await hass.services.async_call(DOMAIN, "cena", {"encja": "sensor.dom_cena", "chwila": "2026-11-26 12:00:00"},
+                                          blocking=True, return_response=True)
+    assert cena["taryfa"] == "G12w" and cena["strefa"] == "szczytowa"
+    assert cena["cena"] == pytest.approx((0.60 + 0.3298 + 0.0434) * 1.23, abs=1e-4)
+    # następna zmiana: o północy (zmiana taryfy), a nie o 21:00? -- 21:00 jest wcześniej
+    assert hass.states.get("sensor.dom_zmiana_strefy").state == "2026-11-25T20:00:00+00:00"
+    # encje stref obu taryf istnieją od razu (bez przebudowy w dniu zmiany)
+    assert hass.states.get("sensor.dom_energia_nocna") is not None
+    # północ: od dziś G12w
+    chwila = datetime.fromisoformat("2026-11-26T00:00:02+01:00")
+    freezer.move_to(chwila)
+    async_fire_time_changed(hass, chwila)
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.dom_strefa").state == "Pozaszczytowa"
+    assert hass.states.get("sensor.dom_strefa").attributes["taryfa"] == "G12w"
+    await _licznik(hass, 1000.4)  # +0,4 kWh w nocy G12w = strefa pozaszczytowa
+    assert float(hass.states.get("sensor.dom_energia_dzis_dzienna_pozaszczytowa").state) == pytest.approx(0.4)
+
+
+async def test_g14dynamic_z_pse(hass: HomeAssistant, freezer, aioclient_mock) -> None:
+    from custom_components.taryfy_pradu import pse
+
+    await hass.config.async_set_time_zone("Europe/Warsaw")
+    freezer.move_to(datetime.fromisoformat("2026-11-26T10:30:00+01:00"))
+    plan = "322223333333333333333332"
+    rekordy = [{"dtime_utc": (datetime(2026, 11, 25, 23) + __import__("datetime").timedelta(hours=i)).strftime("%Y-%m-%d %H:%M"),
+                "usage_fcst": int(c) - 1, "is_active": True, "business_date": "2026-11-26"} for i, c in enumerate(plan)]
+    aioclient_mock.get(pse.URL, json={"value": rekordy})
+    await _licznik(hass, 500.0)
+    entry = await _wpis(hass)
+    g14 = await _taryfa_ze_wzorca(hass, entry, "tauron_g14dynamic_2026", "G14dynamic")
+    fm = hass.config_entries.subentries
+    w = await fm.async_init((entry.entry_id, "punkt"), context={"source": SOURCE_USER})
+    w = await fm.async_configure(w["flow_id"], {"nazwa": "Dom", "zrodlo": ZRODLO, "taryfa": g14})
+    w = await fm.async_configure(w["flow_id"], {"energia": ["strefa"], "dystrybucja": ["strefa"]})
+    w = await fm.async_configure(w["flow_id"], _stawki(w, 0.50))
+    assert w["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert aioclient_mock.call_count >= 1
+    assert hass.states.get("sensor.dom_strefa").state == "Zalecane oszczędzanie"
+    assert float(hass.states.get("sensor.dom_cena").state) == pytest.approx((0.50 + 0.3881 + 0.0434) * 1.23, abs=1e-4)
+    a = hass.states.get("sensor.dom_strefa").attributes
+    assert a["plan_godzinowy_dzis"] == [f"s{c}" for c in plan]
+    assert a["strefy_znane_do"] == "2026-11-27T00:00:00+01:00"
+    assert hass.states.get("sensor.dom_zmiana_strefy").state == "2026-11-26T22:00:00+00:00"
+
+
+async def test_porownanie_wariantow(hass: HomeAssistant, uruchomione) -> None:
+    from unittest.mock import patch
+
+    from custom_components.taryfy_pradu.punkt import Punkt
+
+    entry = uruchomione
+    g11 = await _taryfa_ze_wzorca(hass, entry, "tauron_g11_2026", "G11")
+    entry = hass.config_entries.async_get_entry(entry.entry_id)
+    fm, w = await _rekonfiguruj(hass, entry, "dodaj_wariant")
+    w = await fm.async_configure(w["flow_id"], {"taryfa": g11, "nazwa": "G11 oferta"})
+    w = await fm.async_configure(w["flow_id"], {"energia": [], "dystrybucja": []})
+    w = await fm.async_configure(w["flow_id"], _stawki(w, 0.20))  # bardzo tania oferta
+    assert w["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    async def zuzycie(self, od, do):
+        godz, t = [], od
+        while t < do:
+            godz.append((t, 1.0))
+            t += __import__("datetime").timedelta(hours=1)
+        return godz
+
+    with patch.object(Punkt, "_godziny_zuzycia", zuzycie):
+        wynik = await hass.services.async_call(DOMAIN, "porownaj_taryfy", {"encja": "sensor.dom_cena"},
+                                               blocking=True, return_response=True)
+    await hass.async_block_till_done()
+    r = wynik["30_dni"]
+    assert r["dni"] == 30 and r["najtanszy"] == "G11 oferta" and r["oplaca_sie"] is True
+    assert [p["nazwa"] for p in r["koszty"]] == ["G11 oferta", "Obecna (G13s)"]
+    assert hass.states.get("sensor.dom_najtansza_taryfa_30_dni").state == "G11 oferta"
+    assert hass.states.get("binary_sensor.dom_oplaca_sie_zmiana_taryfy").state == "on"
+    assert float(hass.states.get("sensor.dom_mozliwa_oszczednosc_30_dni").state) == r["oszczednosc_zl"]
+    assert "rok" in wynik and wynik["rok"]["dni"] == 365

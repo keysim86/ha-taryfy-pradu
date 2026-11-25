@@ -27,7 +27,7 @@ class EncjaPunktu(Entity):
         self._attr_unique_id = f"{punkt.id}_{klucz}" + (f"_{strefa}" if strefa else "")
         self._attr_translation_key = klucz
         if strefa:
-            self._attr_translation_placeholders = {"strefa": punkt.taryfa.nazwa_strefy(strefa)}
+            self._attr_translation_placeholders = {"strefa": punkt.strefy_harmonogramu().get(strefa, strefa)}
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, punkt.id)},
             name=punkt.nazwa,
