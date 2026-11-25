@@ -4,6 +4,11 @@
 
 # Taryfy prądu
 
+[![Release](https://img.shields.io/github/v/release/keysim86/ha-taryfy-pradu?style=flat-square&include_prereleases)](https://github.com/keysim86/ha-taryfy-pradu/releases/latest)
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg?style=flat-square)](https://github.com/keysim86/ha-taryfy-pradu)
+[![HA](https://img.shields.io/badge/Home%20Assistant-2026.10%2B-blue?style=flat-square)](https://www.home-assistant.io/)
+[![License](https://img.shields.io/github/license/keysim86/ha-taryfy-pradu.svg?style=flat-square)](LICENSE)
+
 Integracja Home Assistant do śledzenia **bieżących kosztów energii elektrycznej według taryfy strefowej**:
 która strefa obowiązuje teraz, ile kosztuje kWh, kiedy zmiana, ile kosztował dzisiejszy dzień,
 miesiąc i rok — z uwzględnieniem sezonów, dni roboczych, weekendów i świąt.
