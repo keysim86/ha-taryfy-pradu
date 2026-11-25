@@ -1,0 +1,28 @@
+najtanszy_przedzial:
+  fields:
+    encja:
+      required: true
+      selector:
+        entity:
+          integration: taryfy_pradu
+    czas_trwania:
+      required: true
+      example: "02:00:00"
+      selector:
+        duration:
+    od:
+      selector:
+        datetime:
+    do:
+      selector:
+        datetime:
+cena:
+  fields:
+    encja:
+      required: true
+      selector:
+        entity:
+          integration: taryfy_pradu
+    chwila:
+      selector:
+        datetime:

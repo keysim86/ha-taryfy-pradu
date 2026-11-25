@@ -1,0 +1,248 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Taryfy prądu",
+        "description": "Po dodaniu integracji dodaj **taryfę** (kreator stref albo gotowy wzorzec G13 / G13s), a potem **punkt poboru** — licznik energii z cennikiem."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Integracja jest już dodana — taryfy i punkty poboru dodajesz w jej ustawieniach."
+    }
+  },
+  "config_subentries": {
+    "taryfa": {
+      "entry_type": "Taryfa",
+      "initiate_flow": {
+        "user": "Dodaj taryfę",
+        "reconfigure": "Edytuj taryfę"
+      },
+      "step": {
+        "user": {
+          "title": "Nowa taryfa",
+          "description": "Zacznij od wzorca (godziny stref z taryfy operatora na 2026 r.) albo od pustej taryfy. Wszystko można potem zmienić.",
+          "data": {
+            "wzorzec": "Wzorzec"
+          }
+        },
+        "podstawy": {
+          "title": "Taryfa — podstawy",
+          "description": "Strefy: jedna nazwa w wierszu (kolejność dowolna). Sezony: jeden w wierszu, np. `Lato: 04-01 .. 09-30` — każdy dzień roku musi należeć do dokładnie jednego sezonu.\n\nCzas stref: **lokalny** = wg zegara w Polsce; **zimowy** = godziny liczone wg czasu zimowego przez cały rok (latem przesunięte o godzinę) — tak taryfy opisują zegary liczników, które nie przestawiają się latem.",
+          "data": {
+            "nazwa": "Nazwa",
+            "operator": "Operator (OSD)",
+            "czas": "Czas stref",
+            "dni": "Rodzaje dni",
+            "strefy": "Strefy",
+            "sezony": "Sezony"
+          }
+        },
+        "godziny": {
+          "title": "Godziny stref ({nr}/{z})",
+          "description": "**{sezon}, {dzien}**\n\nWpisz przedziały każdej strefy, np. `07:00-09:00, 17:00-21:00` albo `21-7` (przez północ). Razem muszą pokryć całą dobę dokładnie raz; strefę, której tego dnia nie ma, zostaw pustą.",
+          "data": {
+            "jak_roboczy": "Tak samo jak w dzień roboczy"
+          }
+        }
+      },
+      "error": {
+        "blad_taryfy": "{blad}"
+      },
+      "abort": {
+        "reconfigure_successful": "Taryfa zapisana."
+      }
+    },
+    "punkt": {
+      "entry_type": "Punkt poboru",
+      "initiate_flow": {
+        "user": "Dodaj punkt poboru",
+        "reconfigure": "Cennik i ustawienia"
+      },
+      "step": {
+        "user": {
+          "title": "Punkt poboru",
+          "description": "Licznik energii (kWh, narastający) i taryfa, wg której jest rozliczany.",
+          "data": {
+            "nazwa": "Nazwa",
+            "zrodlo": "Licznik energii",
+            "taryfa": "Taryfa"
+          }
+        },
+        "ustawienia": {
+          "title": "Ustawienia punktu",
+          "data": {
+            "nazwa": "Nazwa",
+            "zrodlo": "Licznik energii",
+            "taryfa": "Taryfa"
+          }
+        },
+        "reconfigure": {
+          "title": "Punkt poboru",
+          "menu_options": {
+            "cennik": "Zmień obowiązujący cennik",
+            "nowy_cennik": "Dodaj cennik od wybranego dnia",
+            "usun_cennik": "Usuń cennik",
+            "ustawienia": "Nazwa, licznik i taryfa"
+          }
+        },
+        "nowy_cennik": {
+          "title": "Nowy cennik",
+          "description": "Od tego dnia (00:00) obowiązuje nowy cennik — np. nowa taryfa od 1 stycznia. Wcześniejsze koszty się nie zmieniają.",
+          "data": {
+            "od": "Obowiązuje od"
+          }
+        },
+        "usun_cennik": {
+          "title": "Usuń cennik",
+          "data": {
+            "od": "Cennik obowiązujący od"
+          }
+        },
+        "wymiary": {
+          "title": "Cennik — od czego zależą stawki",
+          "description": "Zaznacz, od czego zależy stawka składnika na fakturze. Np. dystrybucja G13s zależy od sezonu, rodzaju dnia i strefy; energia od sprzedawcy często tylko od strefy. Nic nie zaznaczone = jedna stawka.",
+          "data": {
+            "energia": "Energia czynna (sprzedawca)",
+            "dystrybucja": "Dystrybucja — składnik zmienny"
+          }
+        },
+        "stawki": {
+          "title": "Cennik — stawki netto ({taryfa})",
+          "description": "Wpisz stawki **netto** z faktury lub taryfy. Integracja doliczy VAT. Stawki dystrybucji i opłat są podpowiedziane z taryfy operatora na 2026 r. — sprawdź je z fakturą.",
+          "data": {
+            "jakosciowa": "Opłata jakościowa",
+            "oze": "Opłata OZE",
+            "kogeneracyjna": "Opłata kogeneracyjna",
+            "sieciowa_stala": "Dystrybucja — składnik stały",
+            "abonamentowa": "Opłata abonamentowa",
+            "mocowa": "Opłata mocowa",
+            "handlowa": "Opłata handlowa (sprzedawca)",
+            "vat": "VAT"
+          }
+        }
+      },
+      "abort": {
+        "brak_taryf": "Najpierw dodaj taryfę.",
+        "reconfigure_successful": "Zapisano."
+      }
+    }
+  },
+  "selector": {
+    "czas": {
+      "options": {
+        "lokalny": "Lokalny (zegar w Polsce)",
+        "zimowy": "Zimowy przez cały rok (UTC+1)"
+      }
+    },
+    "dni": {
+      "options": {
+        "roboczy_wolny": "Dni robocze i wolne (sobota, niedziela, święta) osobno",
+        "jednakowe": "Wszystkie dni jednakowo"
+      }
+    },
+    "wymiar": {
+      "options": {
+        "sezon": "Sezon",
+        "dzien": "Rodzaj dnia",
+        "strefa": "Strefa"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "strefa": {
+        "name": "Strefa"
+      },
+      "cena": {
+        "name": "Cena"
+      },
+      "nastepna_strefa": {
+        "name": "Następna strefa"
+      },
+      "zmiana_strefy": {
+        "name": "Zmiana strefy"
+      },
+      "cena_nastepna": {
+        "name": "Cena w następnej strefie"
+      },
+      "cena_strefy": {
+        "name": "Cena dziś — {strefa}"
+      },
+      "koszt_dzien": {
+        "name": "Koszt dziś"
+      },
+      "koszt_miesiac": {
+        "name": "Koszt w tym miesiącu"
+      },
+      "koszt_rok": {
+        "name": "Koszt w tym roku"
+      },
+      "koszt_energii": {
+        "name": "Koszt energii (narastająco)"
+      },
+      "oplaty_stale": {
+        "name": "Opłaty stałe miesięcznie"
+      },
+      "energia_strefy": {
+        "name": "Energia — {strefa}"
+      },
+      "energia_dzis_strefy": {
+        "name": "Energia dziś — {strefa}"
+      }
+    },
+    "binary_sensor": {
+      "najtansza_strefa": {
+        "name": "Najtańsza strefa teraz"
+      },
+      "najdrozsza_strefa": {
+        "name": "Najdroższa strefa teraz"
+      },
+      "dzien_wolny": {
+        "name": "Dzień wolny wg taryfy"
+      }
+    },
+    "calendar": {
+      "kalendarz": {
+        "name": "Strefy"
+      }
+    }
+  },
+  "services": {
+    "najtanszy_przedzial": {
+      "name": "Najtańszy przedział",
+      "description": "Znajduje początek przedziału o podanej długości z najniższą średnią ceną (np. kiedy włączyć pralkę).",
+      "fields": {
+        "encja": {
+          "name": "Encja punktu",
+          "description": "Dowolna encja punktu poboru, np. jego cena."
+        },
+        "czas_trwania": {
+          "name": "Czas trwania",
+          "description": "Jak długo ma działać urządzenie."
+        },
+        "od": {
+          "name": "Od",
+          "description": "Początek szukania (domyślnie teraz)."
+        },
+        "do": {
+          "name": "Do",
+          "description": "Koniec szukania (domyślnie +24 h)."
+        }
+      }
+    },
+    "cena": {
+      "name": "Cena w chwili",
+      "description": "Strefa i cena brutto w podanej chwili.",
+      "fields": {
+        "encja": {
+          "name": "Encja punktu",
+          "description": "Dowolna encja punktu poboru."
+        },
+        "chwila": {
+          "name": "Chwila",
+          "description": "Domyślnie teraz."
+        }
+      }
+    }
+  }
+}

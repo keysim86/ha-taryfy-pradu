@@ -142,34 +142,10 @@ class Taryfa:
         for sid, _, _ in self._sezony:
             for dzien in dni:
                 strefy = (godziny.get(sid) or {}).get(dzien) or {}
-                odcinki: list[tuple[int, int, str]] = []
-                for strefa, tekst in strefy.items():
-                    if strefa not in self._strefy_id:
-                        raise BladTaryfy(f"Nieznana strefa „{strefa}” w godzinach ({sid}, {dzien})")
-                    odcinki += [(od, do, strefa) for od, do in parsuj_przedzialy(tekst)]
-                odcinki.sort()
-                kursor = 0
-                for od, do, strefa in odcinki:
-                    if od != kursor:
-                        co = "nakładają się" if od < kursor else "zostawiają lukę"
-                        raise BladTaryfy(
-                            f"Godziny stref {co} ok. {kursor // 60:02d}:{kursor % 60:02d} "
-                            f"({self._nazwa_sezonu(sid)}, dzień {dzien})"
-                        )
-                    kursor = do
-                if kursor != MINUT_W_DOBIE:
-                    raise BladTaryfy(
-                        f"Godziny stref nie pokrywają całej doby "
-                        f"({self._nazwa_sezonu(sid)}, dzień {dzien})"
-                    )
-                # sklej sąsiednie odcinki tej samej strefy
-                sklejone: list[tuple[int, int, str]] = []
-                for od, do, strefa in odcinki:
-                    if sklejone and sklejone[-1][2] == strefa and sklejone[-1][1] == od:
-                        sklejone[-1] = (sklejone[-1][0], do, strefa)
-                    else:
-                        sklejone.append((od, do, strefa))
-                plany[(sid, dzien)] = sklejone
+                try:
+                    plany[(sid, dzien)] = plan_doby(self._strefy_id, strefy)
+                except BladTaryfy as err:
+                    raise BladTaryfy(f"{err} ({self._nazwa_sezonu(sid)}, dzień {dzien})") from err
         return plany
 
     def _nazwa_sezonu(self, sid: str) -> str:
@@ -247,6 +223,36 @@ class Taryfa:
             wynik.append(self.okno(t + timedelta(minutes=30)).strefa)
             t += timedelta(hours=1)
         return wynik
+
+
+def plan_doby(strefy_id: list[str], godziny: dict[str, str]) -> list[tuple[int, int, str]]:
+    """Godziny stref jednej doby {strefa: "07:00-09:00, ..."} -> posklejane odcinki (minuty).
+
+    Sprawdza, czy odcinki pokrywają całą dobę dokładnie raz (dla kreatora i silnika).
+    """
+    odcinki: list[tuple[int, int, str]] = []
+    for strefa, tekst in godziny.items():
+        if strefa not in strefy_id:
+            raise BladTaryfy(f"Nieznana strefa „{strefa}”")
+        odcinki += [(od, do, strefa) for od, do in parsuj_przedzialy(tekst)]
+    odcinki.sort()
+    kursor = 0
+    for od, do, strefa in odcinki:
+        if od != kursor:
+            co = "nakładają się" if od < kursor else "zostawiają lukę"
+            raise BladTaryfy(f"Godziny stref {co} ok. {kursor // 60:02d}:{kursor % 60:02d}")
+        kursor = do
+    if kursor != MINUT_W_DOBIE:
+        raise BladTaryfy(
+            f"Godziny stref nie pokrywają całej doby (brakuje od {kursor // 60:02d}:{kursor % 60:02d})"
+        )
+    sklejone: list[tuple[int, int, str]] = []
+    for od, do, strefa in odcinki:
+        if sklejone and sklejone[-1][2] == strefa and sklejone[-1][1] == od:
+            sklejone[-1] = (sklejone[-1][0], do, strefa)
+        else:
+            sklejone.append((od, do, strefa))
+    return sklejone
 
 
 def _chwila(d: date, minuta: int, tz) -> datetime:
