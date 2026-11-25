@@ -5,6 +5,8 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-25
+
 ### Dodano
 
 - Silnik taryf strefowych: strefy, sezony, dni robocze i wolne (soboty, niedziele, dni ustawowo wolne
