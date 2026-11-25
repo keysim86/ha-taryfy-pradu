@@ -219,6 +219,12 @@
       },
       "mozliwa_oszczednosc": {
         "name": "Możliwa oszczędność (30 dni)"
+      },
+      "energia_dzien": {
+        "name": "Energia dziś"
+      },
+      "energia_miesiac": {
+        "name": "Energia w tym miesiącu"
       }
     },
     "binary_sensor": {

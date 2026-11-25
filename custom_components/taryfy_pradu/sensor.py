@@ -26,6 +26,7 @@ async def async_setup_entry(
             Strefa(p), Cena(p), NastepnaStrefa(p), ZmianaStrefy(p), CenaNastepna(p),
             Koszt(p, "dzien"), Koszt(p, "miesiac"), Koszt(p, "rok"), KosztEnergii(p),
             OplatyStale(p), NajtanszaTaryfa(p), MozliwaOszczednosc(p),
+            EnergiaOkresu(p, "dzien"), EnergiaOkresu(p, "miesiac"),
         ]
         for strefa in p.strefy_harmonogramu():
             encje += [EnergiaStrefy(p, strefa), EnergiaDzisStrefy(p, strefa), CenaStrefyDzis(p, strefa)]
@@ -254,6 +255,27 @@ class EnergiaStrefy(EncjaPunktu, SensorEntity):
     @property
     def native_value(self) -> float:
         return round(float(self._punkt.stan.get("energia", {}).get(self._strefa, 0.0)), 4)
+
+
+class EnergiaOkresu(EncjaPunktu, SensorEntity):
+    """Łączne zużycie w bieżącej dobie / miesiącu (wszystkie strefy)."""
+
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_suggested_display_precision = 2
+
+    def __init__(self, punkt: Punkt, okres: str) -> None:
+        super().__init__(punkt, f"energia_{okres}")
+        self._okres = okres
+
+    @property
+    def native_value(self) -> float:
+        return round(sum(self._punkt.energia_okresu(self._okres).values()), 4)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"strefy": {s: round(v, 3) for s, v in self._punkt.energia_okresu(self._okres).items()}}
 
 
 class EnergiaDzisStrefy(EncjaPunktu, SensorEntity):

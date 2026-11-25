@@ -117,6 +117,8 @@ async def test_naliczanie_energii_i_kosztu(hass: HomeAssistant, uruchomione, fre
     assert float(hass.states.get("sensor.dom_energia_nocna").state) == pytest.approx(2.0)
     koszt_dzis = hass.states.get("sensor.dom_koszt_dzis")
     assert koszt_dzis.attributes["zuzycie_kwh"] == {"szczytowa": 1.5, "nocna": 2.0}
+    assert float(hass.states.get("sensor.dom_energia_dzis").state) == pytest.approx(3.5)
+    assert float(hass.states.get("sensor.dom_energia_w_tym_miesiacu").state) == pytest.approx(3.5)
     stale_dzien = (10.86 + 4.56 + 24.05) * 1.23 / 30
     assert koszt_dzis.attributes["oplaty_stale"] == pytest.approx(stale_dzien, abs=0.01)
     # spadek licznika (wymiana) nie nalicza

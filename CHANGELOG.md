@@ -5,6 +5,12 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-25
+
+### Dodano
+
+- Sensory łącznego zużycia: „Energia dziś” i „Energia w tym miesiącu” (wszystkie strefy, atrybut z podziałem).
+
 ### Naprawiono
 
 - Rekomendacja porównania z polskim zapisem liczb (112,57 zł, 13,9%).
