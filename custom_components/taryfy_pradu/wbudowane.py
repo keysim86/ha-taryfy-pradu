@@ -67,7 +67,7 @@ TAURON_G13S = {
 }
 
 # Wspólne dla grup G (2026, netto)
-_ZA_KWH_2026 = {"jakosciowa": 0.0331, "oze": 0.0073, "kogeneracyjna": 0.0030}
+_ZA_KWH_2026 = {"jakosciowa": 0.0332, "oze": 0.0073, "kogeneracyjna": 0.0030}  # jakościowa wg faktur i tauron.pl (wyciąg TD: 0,0331)
 _STALE_2026 = {
     "sieciowa_stala": 10.86,  # układ 3-fazowy; 1-fazowy 7,38
     "abonamentowa": 4.56,

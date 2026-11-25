@@ -220,7 +220,7 @@ def test_cennik_g13s(g13s):
     c = Cennik(w["cennik"])
     assert c.braki(g13s) == []
     o = g13s.okno(t("2026-11-25 16:33"))  # zima, roboczy, szczytowa
-    netto = 0.70 + 0.3332 + 0.0331 + 0.0073 + 0.0030
+    netto = 0.70 + 0.3332 + 0.0332 + 0.0073 + 0.0030
     assert c.cena_netto(o) == pytest.approx(netto)
     assert c.cena_brutto(o) == pytest.approx(netto * 1.23)
     assert c.stale_miesieczne_netto() == pytest.approx(10.86 + 4.56 + 24.05)

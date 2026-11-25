@@ -94,7 +94,7 @@ async def uruchomione(hass: HomeAssistant, freezer):
 async def test_encje_strefy_i_ceny(hass: HomeAssistant, uruchomione) -> None:
     assert hass.states.get("sensor.dom_strefa").state == "Dzienna szczytowa"
     cena = float(hass.states.get("sensor.dom_cena").state)
-    assert cena == pytest.approx((0.70 + 0.3332 + 0.0331 + 0.0073 + 0.0030) * 1.23, abs=1e-4)
+    assert cena == pytest.approx((0.70 + 0.3332 + 0.0332 + 0.0073 + 0.0030) * 1.23, abs=1e-4)
     assert hass.states.get("sensor.dom_nastepna_strefa").state == "Nocna"
     assert hass.states.get("sensor.dom_zmiana_strefy").state == "2026-11-25T20:00:00+00:00"
     a = hass.states.get("sensor.dom_strefa").attributes
@@ -139,7 +139,7 @@ async def test_uslugi(hass: HomeAssistant, uruchomione) -> None:
         blocking=True, return_response=True,
     )
     assert cena["strefa"] == "pozaszczytowa" and cena["rodzaj_dnia"] == "wolny"
-    assert cena["cena"] == pytest.approx((0.55 + 0.1200 + 0.0434) * 1.23, abs=1e-4)
+    assert cena["cena"] == pytest.approx((0.55 + 0.1200 + 0.0435) * 1.23, abs=1e-4)
 
 
 async def test_nowy_cennik_od_dnia(hass: HomeAssistant, uruchomione, freezer) -> None:
@@ -164,13 +164,13 @@ async def test_nowy_cennik_od_dnia(hass: HomeAssistant, uruchomione, freezer) ->
     await hass.async_block_till_done()
     # dziś stary cennik
     assert float(hass.states.get("sensor.dom_cena").state) == pytest.approx(
-        (0.70 + 0.3332 + 0.0434) * 1.23, abs=1e-4)
+        (0.70 + 0.3332 + 0.0435) * 1.23, abs=1e-4)
     # w nowym roku nowy (energia 0,40 bez podziału na strefy)
     cena = await hass.services.async_call(
         DOMAIN, "cena", {"encja": "sensor.dom_cena", "chwila": "2027-01-04 16:00:00"},
         blocking=True, return_response=True,
     )
-    assert cena["cena"] == pytest.approx((0.40 + 0.3332 + 0.0434) * 1.23, abs=1e-4)
+    assert cena["cena"] == pytest.approx((0.40 + 0.3332 + 0.0435) * 1.23, abs=1e-4)
 
 
 async def test_kreator_wykrywa_luke_w_godzinach(hass: HomeAssistant) -> None:
@@ -279,7 +279,7 @@ async def test_zmiana_taryfy_od_dnia(hass: HomeAssistant, uruchomione, freezer) 
     cena = await hass.services.async_call(DOMAIN, "cena", {"encja": "sensor.dom_cena", "chwila": "2026-11-26 12:00:00"},
                                           blocking=True, return_response=True)
     assert cena["taryfa"] == "G12w" and cena["strefa"] == "szczytowa"
-    assert cena["cena"] == pytest.approx((0.60 + 0.3298 + 0.0434) * 1.23, abs=1e-4)
+    assert cena["cena"] == pytest.approx((0.60 + 0.3298 + 0.0435) * 1.23, abs=1e-4)
     # następna zmiana: o północy (zmiana taryfy), a nie o 21:00? -- 21:00 jest wcześniej
     assert hass.states.get("sensor.dom_zmiana_strefy").state == "2026-11-25T20:00:00+00:00"
     # encje stref obu taryf istnieją od razu (bez przebudowy w dniu zmiany)
@@ -316,7 +316,7 @@ async def test_g14dynamic_z_pse(hass: HomeAssistant, freezer, aioclient_mock) ->
     await hass.async_block_till_done()
     assert aioclient_mock.call_count >= 1
     assert hass.states.get("sensor.dom_strefa").state == "Zalecane oszczędzanie"
-    assert float(hass.states.get("sensor.dom_cena").state) == pytest.approx((0.50 + 0.3881 + 0.0434) * 1.23, abs=1e-4)
+    assert float(hass.states.get("sensor.dom_cena").state) == pytest.approx((0.50 + 0.3881 + 0.0435) * 1.23, abs=1e-4)
     a = hass.states.get("sensor.dom_strefa").attributes
     assert a["plan_godzinowy_dzis"] == [f"s{c}" for c in plan]
     assert a["strefy_znane_do"] == "2026-11-27T00:00:00+01:00"

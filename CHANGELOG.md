@@ -30,4 +30,6 @@ wersje: [SemVer](https://semver.org/lang/pl/).
 
 ### Naprawiono
 
+- Domyślna opłata jakościowa we wzorcach: 0,0332 zł/kWh (zgodnie z fakturami i tauron.pl; wyciąg z taryfy
+  OSD podawał 0,0331).
 - Testy uruchamiane samym `pytest` (CI) nie znajdowały pakietu integracji.

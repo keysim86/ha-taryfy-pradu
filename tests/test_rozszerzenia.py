@@ -101,7 +101,7 @@ def test_porownanie_g13s_vs_g11():
     k13 = porownanie.koszt_wariantu(godziny, dni, Taryfa(g13s["taryfa"]), Cennik(g13s["cennik"]))
     k11 = porownanie.koszt_wariantu(godziny, dni, Taryfa(g11["taryfa"]), Cennik(g11["cennik"]))
     assert k13["strefy"] == {"nocna": 10.0, "szczytowa": 9.0, "pozaszczytowa": 5.0}
-    za_kwh = 0.0331 + 0.0073 + 0.0030
+    za_kwh = 0.0332 + 0.0073 + 0.0030
     oczek13 = (10 * (0.40 + 0.1094) + 9 * (0.70 + 0.3332) + 5 * (0.50 + 0.1999) + 24 * za_kwh) * 1.23
     assert k13["energia"] == pytest.approx(oczek13)
     assert k11["energia"] == pytest.approx(24 * (0.55 + 0.2464 + za_kwh) * 1.23)
